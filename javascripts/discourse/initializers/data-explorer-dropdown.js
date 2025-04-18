@@ -143,9 +143,6 @@ export default {
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
           
-          // Hide the original parameter container
-          hideElement(paramContainer);
-          
           // Create custom dropdown
           const dropdownContainer = document.createElement('div');
           dropdownContainer.className = 'custom-dropdown-container param';
@@ -207,13 +204,46 @@ export default {
           selectWrapper.appendChild(selectElement);
           dropdownContainer.appendChild(selectWrapper);
           
-          // Insert dropdown after the hidden parameter
-          paramContainer.parentNode.insertBefore(dropdownContainer, paramContainer.nextSibling);
+          // Hide the original parameter container and all its siblings except our new dropdown
+          hideElement(paramContainer);
+          
+          // Find the parent container that holds all params
+          const paramsContainer = paramContainer.parentNode;
+          
+          // Insert dropdown at the beginning of the parent container
+          paramsContainer.insertBefore(dropdownContainer, paramsContainer.firstChild);
+          
+          // Apply additional cleanup
+          cleanupLayout(paramsContainer, dropdownContainer);
           
           return true;
         } catch (error) {
           console.error(`${PLUGIN_ID}: Error creating custom dropdown:`, error.message);
           return false;
+        }
+      }
+      
+      // Helper function to clean up any remaining visual issues
+      function cleanupLayout(container, ourDropdown) {
+        try {
+          // Hide any other input fields or controls in the same container
+          const allInputContainers = container.querySelectorAll('.param');
+          allInputContainers.forEach(elem => {
+            if (elem !== ourDropdown) {
+              elem.style.display = 'none';
+            }
+          });
+          
+          // Ensure our dropdown has full width and proper spacing
+          ourDropdown.style.display = 'block';
+          ourDropdown.style.marginBottom = '15px';
+          
+          // Make sure the container has proper display
+          container.style.display = 'block';
+          container.style.width = '100%';
+          
+        } catch (error) {
+          console.error(`${PLUGIN_ID}: Error in cleanupLayout:`, error.message);
         }
       }
       

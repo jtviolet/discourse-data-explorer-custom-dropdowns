@@ -13,6 +13,13 @@
   top: -9999px !important;
   pointer-events: none !important;
   clip: rect(0, 0, 0, 0) !important;
+  max-height: 0 !important;
+  max-width: 0 !important;
+}
+
+/* Hide any siblings of the hidden parameter as well */
+.hidden-param-input ~ *:not(.custom-dropdown-container) {
+  display: none !important;
 }
 
 .custom-dropdown-container {
@@ -21,7 +28,11 @@
   background-color: var(--secondary);
   border-radius: 4px;
   width: 100%;
-  max-width: 400px;
+  max-width: 300px;
+  clear: both; /* Ensure it doesn't float next to other elements */
+  display: block; /* Make sure it's a block element */
+  position: relative; /* For proper stacking context */
+  z-index: 5; /* Ensure it's above other elements */
 }
 
 .custom-dropdown-label {
@@ -50,7 +61,6 @@
 
 .custom-param-dropdown {
   width: 100%;
-  min-width: 200px;
   padding: 8px 30px 8px 10px;
   border: 1px solid var(--primary-low-mid);
   border-radius: 3px;
@@ -58,9 +68,10 @@
   color: var(--primary);
   font-size: 1em;
   cursor: pointer;
-  appearance: none; /* Removes default browser styling */
+  appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  box-shadow: none; /* Remove any default box shadows */
 }
 
 .custom-param-dropdown:hover {
@@ -71,6 +82,12 @@
   outline: none;
   border-color: var(--tertiary);
   box-shadow: 0 0 0 2px rgba(var(--tertiary-rgb), 0.3);
+}
+
+/* Additional rule to override any parent container styles */
+.param-container, .query-params-container, .param-input {
+  width: auto !important;
+  display: block !important;
 }
 
 // Add a debug class that makes hidden elements obvious when testing
