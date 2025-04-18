@@ -13,85 +13,42 @@
     _initializeCustomDropdowns() {
       // Wait for DOM to be fully loaded with query parameters
       Ember.run.scheduleOnce('afterRender', this, () => {
-        const settings = settings;
-        
-        if (!settings.query_dropdown_mappings) {
-          return;
-        }
-        
-        // Parse mappings from settings
-        const mappings = this._parseMappingSettings(settings.query_dropdown_mappings);
-        
         // Get current query ID
         const queryId = this.get('query.id');
+        if (!queryId) return;
         
-        // Find mapping for current query
-        const mapping = mappings.find(m => m.queryId === queryId);
-        if (!mapping) {
-          return;
+        try {
+          // Parse the JSON configuration
+          const configs = JSON.parse(settings.dropdown_configurations || '[]');
+          
+          // Find configuration for current query
+          const queryConfig = configs.find(config => parseInt(config.queryId, 10) === parseInt(queryId, 10));
+          if (!queryConfig) return;
+          
+          // Setup the dropdown
+          this._setupCustomDropdown(queryConfig);
+        } catch (e) {
+          console.error(`${PLUGIN_ID}: Error parsing configuration`, e);
         }
-        
-        // Create and inject custom dropdown
-        this._setupCustomDropdown(mapping);
       });
     },
     
-    _parseMappingSettings(mappingsString) {
-      const mappings = [];
-      
-      if (!mappingsString) {
-        return mappings;
+    _setupCustomDropdown(config) {
+      if (!config.paramName || !config.options || !Array.isArray(config.options)) {
+        console.error(`${PLUGIN_ID}: Invalid configuration`, config);
+        return;
       }
       
-      // Split by new line for each query configuration
-      const configLines = mappingsString.split("\n").filter(line => line.trim());
-      
-      configLines.forEach(line => {
-        // Format: queryId|paramToHide|option1:value1,option2:value2,...
-        const parts = line.split("|");
-        if (parts.length < 3) {
-          console.error(`${PLUGIN_ID}: Invalid mapping format`, line);
-          return;
-        }
-        
-        const queryId = parseInt(parts[0].trim(), 10);
-        const paramToHide = parts[1].trim();
-        const optionsStr = parts[2].trim();
-        
-        const options = [];
-        optionsStr.split(",").forEach(pair => {
-          const [label, value] = pair.split(":");
-          if (label && value) {
-            options.push({
-              label: label.trim(),
-              value: value.trim()
-            });
-          }
-        });
-        
-        if (options.length > 0) {
-          mappings.push({
-            queryId,
-            paramToHide,
-            options
-          });
-        }
-      });
-      
-      return mappings;
-    },
-    
-    _setupCustomDropdown(mapping) {
       // Find the param input to replace
-      const paramContainer = $(`#query-params-container .param-input[data-name="${mapping.paramToHide}"]`);
+      const paramContainer = $(`#query-params-container .param-input[data-name="${config.paramName}"]`);
       if (!paramContainer.length) {
-        console.error(`${PLUGIN_ID}: Could not find parameter input with name ${mapping.paramToHide}`);
+        console.error(`${PLUGIN_ID}: Could not find parameter input with name ${config.paramName}`);
         return;
       }
       
       const inputField = paramContainer.find('input');
       if (!inputField.length) {
-        console.error(`${PLUGIN_ID}: Could not find input field for parameter ${mapping.paramToHide}`);
+        console.error(`${PLUGIN_ID}: Could not find input field for parameter ${config.paramName}`);
         return;
       }
       
@@ -105,9 +62,11 @@
       // Add an empty option first
       selectElement.append('<option value="">Select an option...</option>');
       
-      // Add options from mapping
-      mapping.options.forEach(option => {
-        selectElement.append(`<option value="${option.value}">${option.label}</option>`);
+      // Add options from configuration
+      config.options.forEach(option => {
+        if (option.label && option.value !== undefined) {
+          selectElement.append(`<option value="${option.value}">${option.label}</option>`);
+        }
       });
       
       // Set current value if it matches any option
