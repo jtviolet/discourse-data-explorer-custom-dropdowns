@@ -169,6 +169,15 @@ export default {
           selectElement.style.padding = '8px';
           selectElement.style.border = '1px solid #ccc';
           selectElement.style.borderRadius = '3px';
+          selectElement.style.backgroundColor = '#ffffff';
+          selectElement.style.color = '#333333';
+          selectElement.style.fontSize = '14px';
+          selectElement.style.fontWeight = 'normal';
+          selectElement.style.textAlign = 'left';
+          selectElement.style.cursor = 'pointer';
+          selectElement.style.appearance = 'auto';
+          selectElement.style.MozAppearance = 'menulist';
+          selectElement.style.WebkitAppearance = 'menulist';
           
           // Add empty option first
           const emptyOption = document.createElement('option');
@@ -217,6 +226,23 @@ export default {
           
           // Add select to the container
           newContainer.appendChild(selectElement);
+          
+          // Ensure dropdown options are visible by adding inline styles
+          document.head.insertAdjacentHTML('beforeend', `
+            <style>
+              .custom-param-dropdown option {
+                background-color: #ffffff !important;
+                color: #333333 !important;
+                font-size: 14px !important;
+                padding: 5px !important;
+              }
+              
+              .custom-param-dropdown {
+                background-color: #ffffff !important;
+                color: #333333 !important;
+              }
+            </style>
+          `);
           
           // Replace the original container with our new one
           if (paramContainer.parentNode) {
