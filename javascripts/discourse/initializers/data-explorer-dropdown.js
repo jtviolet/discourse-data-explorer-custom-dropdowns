@@ -1,5 +1,5 @@
 import { withPluginApi } from "discourse/lib/plugin-api";
-import { run } from "@ember/runloop";
+import { later } from "@ember/runloop";
 
 export default {
   name: "data-explorer-dropdown",
@@ -57,7 +57,7 @@ export default {
           }
           
           // Set a timeout to allow the page to fully render
-          run.later(() => {
+          later(() => {
             hideParameterField(paramToHide);
           }, 500);
         } catch (error) {
@@ -95,6 +95,28 @@ export default {
             }
           }
           
+          // Try finding by label
+          const labels = document.querySelectorAll('label');
+          for (let i = 0; i < labels.length; i++) {
+            if (labels[i].textContent.includes(paramToHide)) {
+              console.log(`${PLUGIN_ID}: Found by label containing text: ${paramToHide}`);
+              hideElement(findParentParam(labels[i]));
+              return;
+            }
+          }
+          
+          // As a last resort, try finding any elements with username_search in their HTML
+          if (paramToHide === "username_search") {
+            const allElements = document.querySelectorAll('*');
+            for (let i = 0; i < allElements.length; i++) {
+              if (allElements[i].id && allElements[i].id.includes("username_search")) {
+                console.log(`${PLUGIN_ID}: Found element with username_search in ID`);
+                hideElement(findParentParam(allElements[i]));
+                return;
+              }
+            }
+          }
+          
           console.log(`${PLUGIN_ID}: Could not find parameter element`);
         } catch (error) {
           console.error(`${PLUGIN_ID}: Error in hideParameterField:`, error.message);
@@ -102,18 +124,30 @@ export default {
       }
       
       function findParentParam(element) {
-        // Try to find the parent .param element
-        let parent = element;
-        while (parent && !parent.classList.contains('param')) {
-          parent = parent.parentElement;
+        try {
+          // Try to find the parent .param element
+          let parent = element;
+          let iterations = 0;
+          
+          while (parent && !parent.classList.contains('param') && iterations < 10) {
+            parent = parent.parentElement;
+            iterations++;
+          }
+          
+          // If we couldn't find a .param parent, try other common container classes
+          if (!parent || !parent.classList.contains('param')) {
+            const formContainer = element.closest('.form-kit__container');
+            if (formContainer) {
+              return formContainer.parentElement || formContainer;
+            }
+            return element;
+          }
+          
+          return parent;
+        } catch (error) {
+          console.error(`${PLUGIN_ID}: Error in findParentParam:`, error.message);
+          return element;
         }
-        
-        // If we couldn't find a .param parent, return the closest form container or the element itself
-        if (!parent) {
-          parent = element.closest('.form-kit__container') || element;
-        }
-        
-        return parent;
       }
       
       function hideElement(element) {
