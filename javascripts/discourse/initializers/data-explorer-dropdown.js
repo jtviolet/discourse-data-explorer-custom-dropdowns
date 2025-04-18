@@ -9,6 +9,9 @@ export default {
     withPluginApi("0.8.31", (api) => {
       const PLUGIN_ID = "discourse-custom-data-explorer-dropdown";
       console.log(`${PLUGIN_ID}: Plugin API initialized`);
+      
+      // Keep track of which queries we've already processed
+      const processedQueries = new Set();
 
       // Use page URL to determine if we're on a data explorer page
       function checkForDataExplorer() {
@@ -56,9 +59,24 @@ export default {
             return;
           }
           
+          // Create a unique key for this query + parameter combination
+          const processKey = `${currentQueryId}-${paramToHide}`;
+          
+          // If we've already processed this query + parameter, don't do it again
+          if (processedQueries.has(processKey)) {
+            console.log(`${PLUGIN_ID}: Already processed query ${currentQueryId}, parameter ${paramToHide}`);
+            return;
+          }
+          
           // Set a timeout to allow the page to fully render
           later(() => {
-            hideParameterField(paramToHide);
+            if (hideParameterField(paramToHide)) {
+              // Only mark as processed if we successfully hid the parameter
+              processedQueries.add(processKey);
+            } else {
+              // If we fail to hide it, we'll try again next time
+              console.log(`${PLUGIN_ID}: Failed to hide parameter, will try again on next event`);
+            }
           }, 500);
         } catch (error) {
           console.error(`${PLUGIN_ID}: Error in processDataExplorerPage:`, error.message);
@@ -74,7 +92,7 @@ export default {
           if (paramElement) {
             console.log(`${PLUGIN_ID}: Found element by ID`);
             hideElement(findParentParam(paramElement));
-            return;
+            return true;
           }
           
           // Try with data-name attribute
@@ -82,7 +100,7 @@ export default {
           if (paramElement) {
             console.log(`${PLUGIN_ID}: Found element by data-name`);
             hideElement(findParentParam(paramElement));
-            return;
+            return true;
           }
           
           // Try with span containing text
@@ -91,7 +109,7 @@ export default {
             if (spans[i].textContent === paramToHide) {
               console.log(`${PLUGIN_ID}: Found element by text content`);
               hideElement(findParentParam(spans[i]));
-              return;
+              return true;
             }
           }
           
@@ -101,7 +119,7 @@ export default {
             if (labels[i].textContent.includes(paramToHide)) {
               console.log(`${PLUGIN_ID}: Found by label containing text: ${paramToHide}`);
               hideElement(findParentParam(labels[i]));
-              return;
+              return true;
             }
           }
           
@@ -112,14 +130,16 @@ export default {
               if (allElements[i].id && allElements[i].id.includes("username_search")) {
                 console.log(`${PLUGIN_ID}: Found element with username_search in ID`);
                 hideElement(findParentParam(allElements[i]));
-                return;
+                return true;
               }
             }
           }
           
           console.log(`${PLUGIN_ID}: Could not find parameter element`);
+          return false;
         } catch (error) {
           console.error(`${PLUGIN_ID}: Error in hideParameterField:`, error.message);
+          return false;
         }
       }
       
