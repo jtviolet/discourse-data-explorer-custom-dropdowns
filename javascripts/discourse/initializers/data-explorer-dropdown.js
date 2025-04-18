@@ -162,22 +162,60 @@ export default {
           newLabel.style.minWidth = '120px';
           newContainer.appendChild(newLabel);
           
-          // Create select element - no wrapper this time
+          // Create a select-kit style container
+          const selectKitContainer = document.createElement('div');
+          selectKitContainer.className = 'select-kit single-select dropdown-select-box';
+          selectKitContainer.style.minWidth = '200px';
+          
+          // Create header (the visible part of the dropdown when collapsed)
+          const selectKitHeader = document.createElement('div');
+          selectKitHeader.className = 'select-kit-header';
+          selectKitHeader.style.display = 'flex';
+          selectKitHeader.style.alignItems = 'center';
+          selectKitHeader.style.cursor = 'pointer';
+          selectKitHeader.style.padding = '8px 10px';
+          selectKitHeader.style.border = '1px solid var(--primary-low-mid, #bbb)';
+          selectKitHeader.style.borderRadius = '3px';
+          selectKitHeader.style.backgroundColor = 'var(--secondary, #ffffff)';
+          
+          // Create the selected name container
+          const selectedNameContainer = document.createElement('div');
+          selectedNameContainer.className = 'select-kit-selected-name';
+          selectedNameContainer.style.display = 'flex';
+          selectedNameContainer.style.alignItems = 'center';
+          selectedNameContainer.style.flex = '1';
+          
+          // Create the selected name
+          const selectedName = document.createElement('span');
+          selectedName.className = 'selected-name';
+          selectedName.style.overflow = 'hidden';
+          selectedName.style.textOverflow = 'ellipsis';
+          selectedName.style.whiteSpace = 'nowrap';
+          selectedName.style.color = 'var(--primary, #333)';
+          selectedName.textContent = 'Select...'; // Default text
+          selectedNameContainer.appendChild(selectedName);
+          
+          // Create caret icon
+          const caretIcon = document.createElement('span');
+          caretIcon.className = 'caret-icon';
+          caretIcon.innerHTML = '▼';
+          caretIcon.style.fontSize = '10px';
+          caretIcon.style.marginLeft = '5px';
+          caretIcon.style.color = 'var(--primary-medium, #777)';
+          selectedNameContainer.appendChild(caretIcon);
+          
+          // Add the selected name container to the header
+          selectKitHeader.appendChild(selectedNameContainer);
+          
+          // Add the header to the select-kit container
+          selectKitContainer.appendChild(selectKitHeader);
+          
+          // Create the real select element (hidden)
           const selectElement = document.createElement('select');
-          selectElement.className = 'custom-param-dropdown';
-          selectElement.style.minWidth = '200px';
-          selectElement.style.padding = '8px';
-          selectElement.style.border = '1px solid #ccc';
-          selectElement.style.borderRadius = '3px';
-          selectElement.style.backgroundColor = '#ffffff';
-          selectElement.style.color = '#333333';
-          selectElement.style.fontSize = '14px';
-          selectElement.style.fontWeight = 'normal';
-          selectElement.style.textAlign = 'left';
-          selectElement.style.cursor = 'pointer';
-          selectElement.style.appearance = 'auto';
-          selectElement.style.MozAppearance = 'menulist';
-          selectElement.style.WebkitAppearance = 'menulist';
+          selectElement.className = 'hidden-select-kit-select';
+          selectElement.style.position = 'absolute';
+          selectElement.style.left = '-9999px';
+          selectElement.style.opacity = '0';
           
           // Add empty option first
           const emptyOption = document.createElement('option');
@@ -199,15 +237,20 @@ export default {
             for (let i = 0; i < selectElement.options.length; i++) {
               if (selectElement.options[i].value === inputField.value) {
                 selectElement.selectedIndex = i;
+                selectedName.textContent = selectElement.options[i].textContent;
                 break;
               }
             }
           }
           
-          // Add change event listener
+          // Add change event listener to the select
           selectElement.addEventListener('change', function() {
             // Update the hidden input field
             inputField.value = this.value;
+            
+            // Update the displayed text
+            const selectedOption = this.options[this.selectedIndex];
+            selectedName.textContent = selectedOption.textContent;
             
             // Trigger change event on the hidden input
             const event = new Event('change', {
@@ -224,22 +267,123 @@ export default {
             inputField.dispatchEvent(inputEvent);
           });
           
-          // Add select to the container
-          newContainer.appendChild(selectElement);
-          
-          // Ensure dropdown options are visible by adding inline styles
-          document.head.insertAdjacentHTML('beforeend', `
-            <style>
-              .custom-param-dropdown option {
-                background-color: #ffffff !important;
-                color: #333333 !important;
-                font-size: 14px !important;
-                padding: 5px !important;
+          // Add click handler to toggle dropdown
+          selectKitHeader.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Create dropdown if it doesn't exist
+            if (!selectKitContainer.querySelector('.select-kit-collection')) {
+              const collection = document.createElement('div');
+              collection.className = 'select-kit-collection';
+              collection.style.position = 'absolute';
+              collection.style.zIndex = '1000';
+              collection.style.backgroundColor = 'var(--secondary, #fff)';
+              collection.style.border = '1px solid var(--primary-low-mid, #bbb)';
+              collection.style.borderRadius = '3px';
+              collection.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.05)';
+              collection.style.marginTop = '2px';
+              collection.style.width = selectKitHeader.offsetWidth + 'px';
+              collection.style.maxHeight = '300px';
+              collection.style.overflowY = 'auto';
+              
+              // Add option items
+              for (let i = 0; i < selectElement.options.length; i++) {
+                const option = selectElement.options[i];
+                
+                const item = document.createElement('div');
+                item.className = 'select-kit-collection-item';
+                item.style.padding = '8px 10px';
+                item.style.cursor = 'pointer';
+                item.style.color = 'var(--primary, #333)';
+                item.style.whiteSpace = 'nowrap';
+                item.style.overflow = 'hidden';
+                item.style.textOverflow = 'ellipsis';
+                
+                if (i === selectElement.selectedIndex) {
+                  item.style.backgroundColor = 'var(--tertiary-low, #f0f0ff)';
+                  item.style.fontWeight = 'bold';
+                }
+                
+                item.textContent = option.textContent;
+                item.dataset.value = option.value;
+                
+                item.addEventListener('click', function() {
+                  // Update the hidden select
+                  selectElement.value = this.dataset.value;
+                  
+                  // Trigger change
+                  const changeEvent = new Event('change', {
+                    bubbles: true,
+                    cancelable: true,
+                  });
+                  selectElement.dispatchEvent(changeEvent);
+                  
+                  // Close dropdown
+                  collection.remove();
+                });
+                
+                // Hover effect
+                item.addEventListener('mouseenter', function() {
+                  this.style.backgroundColor = 'var(--tertiary-very-low, #f5f5ff)';
+                });
+                item.addEventListener('mouseleave', function() {
+                  if (i !== selectElement.selectedIndex) {
+                    this.style.backgroundColor = '';
+                  } else {
+                    this.style.backgroundColor = 'var(--tertiary-low, #f0f0ff)';
+                  }
+                });
+                
+                collection.appendChild(item);
               }
               
-              .custom-param-dropdown {
-                background-color: #ffffff !important;
-                color: #333333 !important;
+              selectKitContainer.appendChild(collection);
+              
+              // Close dropdown when clicking outside
+              const closeDropdown = function(e) {
+                if (!selectKitContainer.contains(e.target)) {
+                  collection.remove();
+                  document.removeEventListener('click', closeDropdown);
+                }
+              };
+              
+              // Add with a delay to avoid the current click event
+              setTimeout(() => {
+                document.addEventListener('click', closeDropdown);
+              }, 0);
+            } else {
+              // Remove the dropdown if it's already open
+              const collection = selectKitContainer.querySelector('.select-kit-collection');
+              if (collection) {
+                collection.remove();
+              }
+            }
+          });
+          
+          // Add the hidden select to the container
+          selectKitContainer.appendChild(selectElement);
+          
+          // Add the select-kit container to the main container
+          newContainer.appendChild(selectKitContainer);
+          
+          // Add Discourse-style CSS
+          document.head.insertAdjacentHTML('beforeend', `
+            <style>
+              .select-kit.single-select.dropdown-select-box {
+                border: none;
+                border-radius: 3px;
+              }
+              
+              .select-kit-header {
+                transition: all 0.25s;
+              }
+              
+              .select-kit-header:hover {
+                border-color: var(--primary-low, #999);
+              }
+              
+              .select-kit-collection-item:hover {
+                background-color: var(--tertiary-very-low, #f5f5ff);
               }
             </style>
           `);
