@@ -1,20 +1,6 @@
 .hidden-param-input {
   display: none !important;
   visibility: hidden !important;
-  opacity: 0 !important;
-  height: 0 !important;
-  width: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  overflow: hidden !important;
-  position: absolute !important;
-  left: -9999px !important;
-  top: -9999px !important;
-  pointer-events: none !important;
-  clip: rect(0, 0, 0, 0) !important;
-  max-height: 0 !important;
-  max-width: 0 !important;
 }
 
 /* Hide any siblings of the hidden parameter as well */
@@ -23,24 +9,17 @@
 }
 
 .custom-dropdown-container {
-  margin: 1em 0;
-  padding: 0.75em;
-  background-color: var(--secondary);
-  border-radius: 4px;
-  width: 100%;
-  max-width: 300px;
-  clear: both; /* Ensure it doesn't float next to other elements */
-  display: block; /* Make sure it's a block element */
-  position: relative; /* For proper stacking context */
-  z-index: 5; /* Ensure it's above other elements */
+  display: flex !important;
+  align-items: center !important;
+  margin: 10px 0 !important;
+  padding: 10px !important;
+  background-color: transparent !important;
 }
 
 .custom-dropdown-label {
-  display: block;
-  margin-bottom: 0.5em;
-  font-weight: bold;
-  color: var(--primary);
-  font-size: 1em;
+  font-weight: bold !important;
+  margin-right: 10px !important;
+  min-width: 120px !important;
 }
 
 .select-wrapper {
@@ -60,18 +39,11 @@
 }
 
 .custom-param-dropdown {
-  width: 100%;
-  padding: 8px 30px 8px 10px;
-  border: 1px solid var(--primary-low-mid);
-  border-radius: 3px;
-  background-color: var(--secondary);
-  color: var(--primary);
-  font-size: 1em;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  box-shadow: none; /* Remove any default box shadows */
+  min-width: 200px !important;
+  padding: 8px !important;
+  border: 1px solid #ccc !important;
+  border-radius: 3px !important;
+  background-color: #fff !important;
 }
 
 .custom-param-dropdown:hover {

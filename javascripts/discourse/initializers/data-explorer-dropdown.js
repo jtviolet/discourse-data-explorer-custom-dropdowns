@@ -143,28 +143,37 @@ export default {
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
           
-          // Create custom dropdown
-          const dropdownContainer = document.createElement('div');
-          dropdownContainer.className = 'custom-dropdown-container param';
+          // Hide the original parameter container
+          paramContainer.style.display = 'none';
+          
+          // Create a completely new container to replace the original
+          const newContainer = document.createElement('div');
+          newContainer.className = 'custom-dropdown-container';
+          newContainer.style.display = 'flex';
+          newContainer.style.alignItems = 'center';
+          newContainer.style.padding = '10px';
           
           // Create label
           const newLabel = document.createElement('label');
           newLabel.className = 'custom-dropdown-label';
           newLabel.textContent = friendlyLabel;
-          dropdownContainer.appendChild(newLabel);
+          newLabel.style.marginRight = '10px';
+          newLabel.style.fontWeight = 'bold';
+          newLabel.style.minWidth = '120px';
+          newContainer.appendChild(newLabel);
           
-          // Create select wrapper for better styling
-          const selectWrapper = document.createElement('div');
-          selectWrapper.className = 'select-wrapper';
-          
-          // Create select element
+          // Create select element - no wrapper this time
           const selectElement = document.createElement('select');
           selectElement.className = 'custom-param-dropdown';
+          selectElement.style.minWidth = '200px';
+          selectElement.style.padding = '8px';
+          selectElement.style.border = '1px solid #ccc';
+          selectElement.style.borderRadius = '3px';
           
           // Add empty option first
           const emptyOption = document.createElement('option');
           emptyOption.value = '';
-          emptyOption.textContent = `Select ${friendlyLabel}...`;
+          emptyOption.textContent = 'Select...';
           selectElement.appendChild(emptyOption);
           
           // Add options from settings
@@ -175,9 +184,15 @@ export default {
             selectElement.appendChild(optionElement);
           });
           
-          // If the input field has a value, try to select the matching option
+          // Set the current value if available
           if (inputField.value) {
-            selectElement.value = inputField.value;
+            // Find the option that matches the input value
+            for (let i = 0; i < selectElement.options.length; i++) {
+              if (selectElement.options[i].value === inputField.value) {
+                selectElement.selectedIndex = i;
+                break;
+              }
+            }
           }
           
           // Add change event listener
@@ -200,21 +215,21 @@ export default {
             inputField.dispatchEvent(inputEvent);
           });
           
-          // Add select to wrapper, then wrapper to container
-          selectWrapper.appendChild(selectElement);
-          dropdownContainer.appendChild(selectWrapper);
+          // Add select to the container
+          newContainer.appendChild(selectElement);
           
-          // Hide the original parameter container and all its siblings except our new dropdown
-          hideElement(paramContainer);
-          
-          // Find the parent container that holds all params
-          const paramsContainer = paramContainer.parentNode;
-          
-          // Insert dropdown at the beginning of the parent container
-          paramsContainer.insertBefore(dropdownContainer, paramsContainer.firstChild);
-          
-          // Apply additional cleanup
-          cleanupLayout(paramsContainer, dropdownContainer);
+          // Replace the original container with our new one
+          if (paramContainer.parentNode) {
+            paramContainer.parentNode.insertBefore(newContainer, paramContainer);
+            
+            // Remove any other elements that might be interfering
+            const siblings = Array.from(paramContainer.parentNode.children);
+            siblings.forEach(sibling => {
+              if (sibling !== newContainer && sibling !== paramContainer) {
+                sibling.style.display = 'none';
+              }
+            });
+          }
           
           return true;
         } catch (error) {
@@ -226,21 +241,31 @@ export default {
       // Helper function to clean up any remaining visual issues
       function cleanupLayout(container, ourDropdown) {
         try {
-          // Hide any other input fields or controls in the same container
-          const allInputContainers = container.querySelectorAll('.param');
-          allInputContainers.forEach(elem => {
-            if (elem !== ourDropdown) {
-              elem.style.display = 'none';
+          // Make sure all other inputs and fields are hidden
+          const allInputs = container.querySelectorAll('input, select, textarea');
+          allInputs.forEach(input => {
+            if (!ourDropdown.contains(input)) {
+              const parentElem = input.closest('.param, .form-kit__container');
+              if (parentElem) {
+                parentElem.style.display = 'none';
+              }
             }
           });
           
-          // Ensure our dropdown has full width and proper spacing
-          ourDropdown.style.display = 'block';
-          ourDropdown.style.marginBottom = '15px';
+          // Make sure the label is properly styled
+          const label = ourDropdown.querySelector('.custom-dropdown-label');
+          if (label) {
+            label.style.fontWeight = 'bold';
+            label.style.display = 'inline-block';
+            label.style.marginRight = '10px';
+          }
           
-          // Make sure the container has proper display
-          container.style.display = 'block';
-          container.style.width = '100%';
+          // Make sure the select is properly styled
+          const select = ourDropdown.querySelector('select');
+          if (select) {
+            select.style.minWidth = '200px';
+            select.style.display = 'inline-block';
+          }
           
         } catch (error) {
           console.error(`${PLUGIN_ID}: Error in cleanupLayout:`, error.message);
