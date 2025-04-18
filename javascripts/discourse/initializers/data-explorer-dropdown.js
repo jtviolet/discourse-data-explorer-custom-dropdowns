@@ -1,5 +1,5 @@
 import { withPluginApi } from "discourse/lib/plugin-api";
-import { later } from "@ember/runloop";
+import { later, cancel } from "@ember/runloop";
 
 export default {
   name: "data-explorer-dropdown",
@@ -12,10 +12,19 @@ export default {
       
       // Keep track of which queries we've already processed
       const processedQueries = new Set();
+      
+      // Track setTimeout references
+      let pendingTimer = null;
 
       // Use page URL to determine if we're on a data explorer page
       function checkForDataExplorer() {
         try {
+          // Cancel any pending timer to prevent double execution
+          if (pendingTimer) {
+            cancel(pendingTimer);
+            pendingTimer = null;
+          }
+          
           // Check if URL contains data explorer
           if (window.location.href.includes("/admin/plugins/explorer")) {
             console.log(`${PLUGIN_ID}: This is a data explorer page`);
@@ -34,9 +43,6 @@ export default {
           const targetQueryId = settings.target_query_id;
           const paramToHide = settings.parameter_to_hide;
           
-          console.log(`${PLUGIN_ID}: Target query: ${targetQueryId}, Parameter: ${paramToHide}`);
-          
-          // Check if settings are valid
           if (!targetQueryId || !paramToHide) {
             console.log(`${PLUGIN_ID}: Missing settings, skipping`);
             return;
@@ -47,35 +53,32 @@ export default {
           const currentQueryId = urlMatch ? parseInt(urlMatch[1], 10) : null;
           
           if (!currentQueryId) {
-            console.log(`${PLUGIN_ID}: Not on a specific query page`);
             return;
           }
-          
-          console.log(`${PLUGIN_ID}: Current query ID: ${currentQueryId}`);
           
           // Check if this is the target query
           if (currentQueryId !== parseInt(targetQueryId, 10)) {
-            console.log(`${PLUGIN_ID}: Not the target query, skipping`);
             return;
           }
+          
+          console.log(`${PLUGIN_ID}: Processing query ${currentQueryId}, parameter ${paramToHide}`);
           
           // Create a unique key for this query + parameter combination
           const processKey = `${currentQueryId}-${paramToHide}`;
           
-          // If we've already processed this query + parameter, don't do it again
+          // If we've already processed and hidden this parameter, don't try again
           if (processedQueries.has(processKey)) {
-            console.log(`${PLUGIN_ID}: Already processed query ${currentQueryId}, parameter ${paramToHide}`);
+            console.log(`${PLUGIN_ID}: Already processed this query+parameter`);
             return;
           }
           
           // Set a timeout to allow the page to fully render
-          later(() => {
-            if (hideParameterField(paramToHide)) {
-              // Only mark as processed if we successfully hid the parameter
+          pendingTimer = later(() => {
+            const result = hideParameterField(paramToHide);
+            
+            if (result) {
+              console.log(`${PLUGIN_ID}: Successfully processed query ${currentQueryId}, parameter ${paramToHide}`);
               processedQueries.add(processKey);
-            } else {
-              // If we fail to hide it, we'll try again next time
-              console.log(`${PLUGIN_ID}: Failed to hide parameter, will try again on next event`);
             }
           }, 500);
         } catch (error) {
@@ -85,12 +88,9 @@ export default {
       
       function hideParameterField(paramToHide) {
         try {
-          console.log(`${PLUGIN_ID}: Attempting to hide parameter: ${paramToHide}`);
-          
           // Try with ID selector first (most reliable)
           let paramElement = document.getElementById(`control-${paramToHide}`);
           if (paramElement) {
-            console.log(`${PLUGIN_ID}: Found element by ID`);
             hideElement(findParentParam(paramElement));
             return true;
           }
@@ -98,7 +98,6 @@ export default {
           // Try with data-name attribute
           paramElement = document.querySelector(`[data-name="${paramToHide}"]`);
           if (paramElement) {
-            console.log(`${PLUGIN_ID}: Found element by data-name`);
             hideElement(findParentParam(paramElement));
             return true;
           }
@@ -107,7 +106,6 @@ export default {
           const spans = document.querySelectorAll('span');
           for (let i = 0; i < spans.length; i++) {
             if (spans[i].textContent === paramToHide) {
-              console.log(`${PLUGIN_ID}: Found element by text content`);
               hideElement(findParentParam(spans[i]));
               return true;
             }
@@ -117,7 +115,6 @@ export default {
           const labels = document.querySelectorAll('label');
           for (let i = 0; i < labels.length; i++) {
             if (labels[i].textContent.includes(paramToHide)) {
-              console.log(`${PLUGIN_ID}: Found by label containing text: ${paramToHide}`);
               hideElement(findParentParam(labels[i]));
               return true;
             }
@@ -128,14 +125,12 @@ export default {
             const allElements = document.querySelectorAll('*');
             for (let i = 0; i < allElements.length; i++) {
               if (allElements[i].id && allElements[i].id.includes("username_search")) {
-                console.log(`${PLUGIN_ID}: Found element with username_search in ID`);
                 hideElement(findParentParam(allElements[i]));
                 return true;
               }
             }
           }
           
-          console.log(`${PLUGIN_ID}: Could not find parameter element`);
           return false;
         } catch (error) {
           console.error(`${PLUGIN_ID}: Error in hideParameterField:`, error.message);
@@ -173,11 +168,8 @@ export default {
       function hideElement(element) {
         try {
           if (!element) {
-            console.log(`${PLUGIN_ID}: No element to hide`);
             return;
           }
-          
-          console.log(`${PLUGIN_ID}: Hiding element with ID: ${element.id || 'no-id'}`);
           
           // Add our class
           element.classList.add('hidden-param-input');
@@ -185,8 +177,6 @@ export default {
           // Apply inline styles for redundancy
           element.style.display = 'none';
           element.style.visibility = 'hidden';
-          
-          console.log(`${PLUGIN_ID}: Element hidden successfully`);
         } catch (error) {
           console.error(`${PLUGIN_ID}: Error in hideElement:`, error.message);
         }
@@ -195,7 +185,6 @@ export default {
       // Set up page change handler with error handling
       api.onPageChange(() => {
         try {
-          console.log(`${PLUGIN_ID}: Page changed`);
           checkForDataExplorer();
         } catch (error) {
           console.error(`${PLUGIN_ID}: Error in onPageChange handler:`, error.message);
