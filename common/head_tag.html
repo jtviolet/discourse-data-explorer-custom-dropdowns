@@ -7,130 +7,43 @@
     
     didInsertElement() {
       this._super(...arguments);
-      this._initializeCustomDropdowns();
+      this._checkAndHideParameter();
     },
 
-    _initializeCustomDropdowns() {
+    _checkAndHideParameter() {
       // Wait for DOM to be fully loaded with query parameters
       Ember.run.scheduleOnce('afterRender', this, () => {
         // Get current query ID
         const queryId = this.get('query.id');
         if (!queryId) return;
         
-        // Parse configurations from settings
-        const configs = this._parseConfigurations(settings.dropdown_configurations);
+        // Get settings
+        const targetQueryId = settings.target_query_id;
+        const paramToHide = settings.parameter_to_hide;
         
-        // Find configuration for current query
-        const queryConfig = configs.find(config => 
-          parseInt(config.queryId, 10) === parseInt(queryId, 10)
-        );
-        
-        if (queryConfig) {
-          // Setup the dropdown
-          this._setupCustomDropdown(queryConfig);
+        // Check if this is the target query
+        if (parseInt(queryId, 10) !== parseInt(targetQueryId, 10)) {
+          return;
         }
-      });
-    },
-    
-    _parseConfigurations(configList) {
-      const configs = [];
-      
-      if (!configList || !Array.isArray(configList)) {
-        return configs;
-      }
-      
-      configList.forEach(configLine => {
-        if (!configLine || typeof configLine !== 'string') return;
         
-        // Format: queryId|paramName|label1:value1,label2:value2,...
-        const parts = configLine.split('|');
-        if (parts.length < 3) return;
-        
-        const queryId = parseInt(parts[0].trim(), 10);
-        const paramName = parts[1].trim();
-        const optionsStr = parts[2].trim();
-        
-        const options = [];
-        optionsStr.split(',').forEach(pair => {
-          const [label, value] = pair.split(':');
-          if (label && value) {
-            options.push({
-              label: label.trim(),
-              value: value.trim()
-            });
-          }
-        });
-        
-        if (options.length > 0) {
-          configs.push({
-            queryId,
-            paramName,
-            options
-          });
+        // Check if param to hide is set
+        if (!paramToHide) {
+          return;
         }
-      });
-      
-      return configs;
-    },
-    
-    _setupCustomDropdown(config) {
-      if (!config.paramName || !config.options || !Array.isArray(config.options)) {
-        console.error(`${PLUGIN_ID}: Invalid configuration`, config);
-        return;
-      }
-      
-      // Find the param input to replace
-      const paramContainer = $(`#query-params-container .param-input[data-name="${config.paramName}"]`);
-      if (!paramContainer.length) {
-        console.error(`${PLUGIN_ID}: Could not find parameter input with name ${config.paramName}`);
-        return;
-      }
-      
-      const inputField = paramContainer.find('input');
-      if (!inputField.length) {
-        console.error(`${PLUGIN_ID}: Could not find input field for parameter ${config.paramName}`);
-        return;
-      }
-      
-      // Hide the original input container
-      paramContainer.addClass('hidden-param-input');
-      
-      // Create custom dropdown
-      const dropdownContainer = $('<div class="custom-dropdown-container"></div>');
-      const selectElement = $('<select class="custom-param-dropdown"></select>');
-      
-      // Add an empty option first
-      selectElement.append('<option value="">Select an option...</option>');
-      
-      // Add options from configuration
-      config.options.forEach(option => {
-        if (option.label && option.value !== undefined) {
-          selectElement.append(`<option value="${option.value}">${option.label}</option>`);
-        }
-      });
-      
-      // Set current value if it matches any option
-      const currentValue = inputField.val();
-      if (currentValue) {
-        selectElement.val(currentValue);
-      }
-      
-      // Handle change event
-      selectElement.on('change', function() {
-        const selectedValue = $(this).val();
-        inputField.val(selectedValue);
         
-        // Trigger change event on hidden input so Discourse recognizes the change
-        inputField.trigger('change');
+        console.log(`${PLUGIN_ID}: Attempting to hide parameter ${paramToHide} for query ${targetQueryId}`);
+        
+        // Find and hide the parameter input
+        const paramContainer = $(`#query-params-container .param-input[data-name="${paramToHide}"]`);
+        if (!paramContainer.length) {
+          console.error(`${PLUGIN_ID}: Could not find parameter input with name ${paramToHide}`);
+          return;
+        }
+        
+        // Hide the parameter container
+        paramContainer.addClass('hidden-param-input');
+        console.log(`${PLUGIN_ID}: Successfully hid parameter ${paramToHide}`);
       });
-      
-      // Add label and dropdown to container
-      const label = paramContainer.find('label').text();
-      dropdownContainer.append(`<label class="custom-dropdown-label">${label}</label>`);
-      dropdownContainer.append(selectElement);
-      
-      // Insert dropdown after the hidden input
-      paramContainer.after(dropdownContainer);
     }
   });
 </script>
@@ -138,22 +51,5 @@
 <style>
   .hidden-param-input {
     display: none !important;
-  }
-  
-  .custom-dropdown-container {
-    margin: 8px 0;
-  }
-  
-  .custom-dropdown-label {
-    display: block;
-    margin-bottom: 4px;
-    font-weight: bold;
-  }
-  
-  .custom-param-dropdown {
-    width: 100%;
-    padding: 6px;
-    border-radius: 3px;
-    border: 1px solid var(--primary-low);
   }
 </style> 

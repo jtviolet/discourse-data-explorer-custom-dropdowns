@@ -8,3 +8,13 @@ dropdown_configurations:
     Example:
     12|parent_category_name|Access Analyzer:access-analyzer,Account:account,Billing:billing
   list_type: compact
+
+target_query_id:
+  type: integer
+  default: 0
+  description: "The ID of the Data Explorer query where you want to hide a parameter"
+
+parameter_to_hide:
+  type: string
+  default: ""
+  description: "The name of the parameter field you want to hide (e.g. parent_category_name)"
