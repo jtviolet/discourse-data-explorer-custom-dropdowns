@@ -1,9 +1,20 @@
 target_query_id:
   type: integer
   default: 0
-  description: "The ID of the Data Explorer query where you want to hide a parameter"
+  description: "The ID of the Data Explorer query where you want to add a custom dropdown"
 
 parameter_to_hide:
   type: string
   default: ""
-  description: "The name of the parameter field you want to hide (e.g. username_search)"
+  description: "The name of the parameter field you want to replace with a dropdown (e.g. username_search)"
+
+dropdown_options:
+  type: list
+  default: "Option 1:value1,Option 2:value2"
+  description: |
+    Options for the custom dropdown. Format each option as "Label:value" where:
+    - Label: The text shown to users in the dropdown
+    - value: The actual text inserted into the hidden parameter
+    
+    Separate multiple options with commas.
+  list_type: compact

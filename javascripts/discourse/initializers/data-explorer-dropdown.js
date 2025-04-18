@@ -41,8 +41,9 @@ export default {
           // Get settings
           const targetQueryId = settings.target_query_id;
           const paramToHide = settings.parameter_to_hide;
+          const dropdownOptions = parseDropdownOptions(settings.dropdown_options);
           
-          if (!targetQueryId || !paramToHide) {
+          if (!targetQueryId || !paramToHide || !dropdownOptions.length) {
             isCurrentlyProcessing = false;
             return;
           }
@@ -73,10 +74,10 @@ export default {
           // Schedule the actual processing
           pendingTimer = later(() => {
             try {
-              const result = hideParameterField(paramToHide);
+              const result = replaceWithCustomDropdown(paramToHide, dropdownOptions);
               
               if (result) {
-                console.log(`${PLUGIN_ID}: Successfully hidden parameter ${paramToHide}`);
+                console.log(`${PLUGIN_ID}: Successfully replaced parameter ${paramToHide} with custom dropdown`);
                 processedQueries.add(processKey);
               }
             } finally {
@@ -92,56 +93,164 @@ export default {
         }
       }
       
-      function hideParameterField(paramToHide) {
+      // Parse the dropdown options from the settings
+      function parseDropdownOptions(optionsStr) {
+        if (!optionsStr) return [];
+        
+        const options = [];
+        
+        // Check if it's a string (from the default setting) or an array (from the actual list setting)
+        const optionsArray = Array.isArray(optionsStr) ? optionsStr : [optionsStr];
+        
+        optionsArray.forEach(optionLine => {
+          // Handle both comma-separated options (within a single line) and multiple lines
+          const parts = optionLine.split(',');
+          
+          parts.forEach(part => {
+            const [label, value] = part.split(':');
+            if (label && value) {
+              options.push({
+                label: label.trim(),
+                value: value.trim()
+              });
+            }
+          });
+        });
+        
+        return options;
+      }
+      
+      // Find and replace parameter with custom dropdown
+      function replaceWithCustomDropdown(paramToHide, dropdownOptions) {
         try {
-          // Try with ID selector first (most reliable)
-          let paramElement = document.getElementById(`control-${paramToHide}`);
-          if (paramElement) {
-            hideElement(findParentParam(paramElement));
-            return true;
+          // First, find the parameter container
+          const paramContainer = findParameterContainer(paramToHide);
+          if (!paramContainer) {
+            console.error(`${PLUGIN_ID}: Could not find parameter container for ${paramToHide}`);
+            return false;
           }
           
-          // Try with data-name attribute
-          paramElement = document.querySelector(`[data-name="${paramToHide}"]`);
-          if (paramElement) {
-            hideElement(findParentParam(paramElement));
-            return true;
+          // Find the input field within the container
+          const inputField = paramContainer.querySelector('input');
+          if (!inputField) {
+            console.error(`${PLUGIN_ID}: Could not find input field in parameter container`);
+            return false;
           }
           
-          // Try with span containing text
-          const spans = document.querySelectorAll('span');
-          for (let i = 0; i < spans.length; i++) {
-            if (spans[i].textContent === paramToHide) {
-              hideElement(findParentParam(spans[i]));
-              return true;
-            }
+          // Get label text
+          const labelElement = paramContainer.querySelector('label');
+          const labelText = labelElement ? labelElement.textContent : paramToHide;
+          
+          // Hide the original parameter container
+          hideElement(paramContainer);
+          
+          // Create custom dropdown
+          const dropdownContainer = document.createElement('div');
+          dropdownContainer.className = 'custom-dropdown-container param';
+          
+          // Create label
+          const newLabel = document.createElement('label');
+          newLabel.className = 'custom-dropdown-label';
+          newLabel.textContent = labelText;
+          dropdownContainer.appendChild(newLabel);
+          
+          // Create select element
+          const selectElement = document.createElement('select');
+          selectElement.className = 'custom-param-dropdown';
+          
+          // Add empty option first
+          const emptyOption = document.createElement('option');
+          emptyOption.value = '';
+          emptyOption.textContent = 'Select an option...';
+          selectElement.appendChild(emptyOption);
+          
+          // Add options from settings
+          dropdownOptions.forEach(option => {
+            const optionElement = document.createElement('option');
+            optionElement.value = option.value;
+            optionElement.textContent = option.label;
+            selectElement.appendChild(optionElement);
+          });
+          
+          // If the input field has a value, try to select the matching option
+          if (inputField.value) {
+            selectElement.value = inputField.value;
           }
           
-          // Try finding by label
-          const labels = document.querySelectorAll('label');
-          for (let i = 0; i < labels.length; i++) {
-            if (labels[i].textContent.includes(paramToHide)) {
-              hideElement(findParentParam(labels[i]));
-              return true;
-            }
-          }
+          // Add change event listener
+          selectElement.addEventListener('change', function() {
+            // Update the hidden input field
+            inputField.value = this.value;
+            
+            // Trigger change event on the hidden input
+            const event = new Event('change', {
+              bubbles: true,
+              cancelable: true,
+            });
+            inputField.dispatchEvent(event);
+            
+            // Also trigger input event for good measure
+            const inputEvent = new Event('input', {
+              bubbles: true,
+              cancelable: true,
+            });
+            inputField.dispatchEvent(inputEvent);
+          });
           
-          // As a last resort, try finding any elements with username_search in their HTML
-          if (paramToHide === "username_search") {
-            const allElements = document.querySelectorAll('*');
-            for (let i = 0; i < allElements.length; i++) {
-              if (allElements[i].id && allElements[i].id.includes("username_search")) {
-                hideElement(findParentParam(allElements[i]));
-                return true;
-              }
-            }
-          }
+          // Add select to container
+          dropdownContainer.appendChild(selectElement);
           
-          return false;
+          // Insert dropdown after the hidden parameter
+          paramContainer.parentNode.insertBefore(dropdownContainer, paramContainer.nextSibling);
+          
+          return true;
         } catch (error) {
-          console.error(`${PLUGIN_ID}: Error in hideParameterField:`, error.message);
+          console.error(`${PLUGIN_ID}: Error creating custom dropdown:`, error.message);
           return false;
         }
+      }
+      
+      // Find parameter container using multiple strategies
+      function findParameterContainer(paramToHide) {
+        // Try with ID selector first (most reliable)
+        let element = document.getElementById(`control-${paramToHide}`);
+        if (element) {
+          return findParentParam(element);
+        }
+        
+        // Try with data-name attribute
+        element = document.querySelector(`[data-name="${paramToHide}"]`);
+        if (element) {
+          return findParentParam(element);
+        }
+        
+        // Try with span containing text
+        const spans = document.querySelectorAll('span');
+        for (let i = 0; i < spans.length; i++) {
+          if (spans[i].textContent === paramToHide) {
+            return findParentParam(spans[i]);
+          }
+        }
+        
+        // Try finding by label
+        const labels = document.querySelectorAll('label');
+        for (let i = 0; i < labels.length; i++) {
+          if (labels[i].textContent.includes(paramToHide)) {
+            return findParentParam(labels[i]);
+          }
+        }
+        
+        // Special case for username_search
+        if (paramToHide === "username_search") {
+          const allElements = document.querySelectorAll('*');
+          for (let i = 0; i < allElements.length; i++) {
+            if (allElements[i].id && allElements[i].id.includes("username_search")) {
+              return findParentParam(allElements[i]);
+            }
+          }
+        }
+        
+        return null;
       }
       
       function findParentParam(element) {

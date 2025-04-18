@@ -13,8 +13,29 @@
   top: -9999px !important;
   pointer-events: none !important;
   clip: rect(0, 0, 0, 0) !important;
-  max-height: 0 !important;
-  max-width: 0 !important;
+}
+
+.custom-dropdown-container {
+  margin: 0.5em 0;
+  padding: 0.5em 1em;
+  background-color: var(--secondary);
+  border-radius: 4px;
+}
+
+.custom-dropdown-label {
+  display: block;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+  color: var(--primary);
+}
+
+.custom-param-dropdown {
+  width: 100%;
+  padding: 0.5em;
+  border: 1px solid var(--primary-low);
+  border-radius: 3px;
+  background-color: var(--secondary);
+  color: var(--primary);
 }
 
 // Add a debug class that makes hidden elements obvious when testing
