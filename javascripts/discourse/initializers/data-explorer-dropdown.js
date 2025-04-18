@@ -15,10 +15,24 @@ export default {
       
       // Track setTimeout references
       let pendingTimer = null;
+      
+      // Track the current page URL to prevent redundant processing
+      let currentPageUrl = window.location.href;
 
       // Use page URL to determine if we're on a data explorer page
       function checkForDataExplorer() {
         try {
+          // Get the current URL
+          const url = window.location.href;
+          
+          // If we've already processed this exact URL, skip
+          if (url === currentPageUrl && processedQueries.size > 0) {
+            return;
+          }
+          
+          // Update the current URL
+          currentPageUrl = url;
+          
           // Cancel any pending timer to prevent double execution
           if (pendingTimer) {
             cancel(pendingTimer);
@@ -26,8 +40,8 @@ export default {
           }
           
           // Check if URL contains data explorer
-          if (window.location.href.includes("/admin/plugins/explorer")) {
-            console.log(`${PLUGIN_ID}: This is a data explorer page`);
+          if (url.includes("/admin/plugins/explorer")) {
+            console.log(`${PLUGIN_ID}: Processing data explorer page`);
             
             // Process the data explorer page
             processDataExplorerPage();
@@ -44,7 +58,6 @@ export default {
           const paramToHide = settings.parameter_to_hide;
           
           if (!targetQueryId || !paramToHide) {
-            console.log(`${PLUGIN_ID}: Missing settings, skipping`);
             return;
           }
           
@@ -61,23 +74,22 @@ export default {
             return;
           }
           
-          console.log(`${PLUGIN_ID}: Processing query ${currentQueryId}, parameter ${paramToHide}`);
-          
           // Create a unique key for this query + parameter combination
           const processKey = `${currentQueryId}-${paramToHide}`;
           
           // If we've already processed and hidden this parameter, don't try again
           if (processedQueries.has(processKey)) {
-            console.log(`${PLUGIN_ID}: Already processed this query+parameter`);
             return;
           }
+          
+          console.log(`${PLUGIN_ID}: Setting up processing for query ${currentQueryId}, parameter ${paramToHide}`);
           
           // Set a timeout to allow the page to fully render
           pendingTimer = later(() => {
             const result = hideParameterField(paramToHide);
             
             if (result) {
-              console.log(`${PLUGIN_ID}: Successfully processed query ${currentQueryId}, parameter ${paramToHide}`);
+              console.log(`${PLUGIN_ID}: Successfully hidden parameter ${paramToHide} for query ${currentQueryId}`);
               processedQueries.add(processKey);
             }
           }, 500);
@@ -191,12 +203,14 @@ export default {
         }
       });
       
-      // Initial check
-      try {
-        checkForDataExplorer();
-      } catch (error) {
-        console.error(`${PLUGIN_ID}: Error in initial check:`, error.message);
-      }
+      // Initial check - delay slightly to ensure DOM is ready
+      later(() => {
+        try {
+          checkForDataExplorer();
+        } catch (error) {
+          console.error(`${PLUGIN_ID}: Error in initial check:`, error.message);
+        }
+      }, 50);
     });
   }
 }; 
