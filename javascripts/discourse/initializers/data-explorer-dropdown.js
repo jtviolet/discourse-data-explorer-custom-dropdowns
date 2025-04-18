@@ -10,54 +10,40 @@ export default {
       const PLUGIN_ID = "discourse-custom-data-explorer-dropdown";
       console.log(`${PLUGIN_ID}: Plugin API initialized`);
       
-      // Keep track of which queries we've already processed
+      // Track processing state
+      let initialCheckComplete = false;
+      let isCurrentlyProcessing = false;
       const processedQueries = new Set();
-      
-      // Track setTimeout references
       let pendingTimer = null;
-      
-      // Track the current page URL to prevent redundant processing
-      let currentPageUrl = window.location.href;
 
-      // Use page URL to determine if we're on a data explorer page
-      function checkForDataExplorer() {
+      // Main handler function - used for both initial load and page changes
+      function handlePage() {
+        // Avoid concurrent processing
+        if (isCurrentlyProcessing) {
+          return;
+        }
+        
         try {
-          // Get the current URL
-          const url = window.location.href;
+          isCurrentlyProcessing = true;
           
-          // If we've already processed this exact URL, skip
-          if (url === currentPageUrl && processedQueries.size > 0) {
-            return;
-          }
-          
-          // Update the current URL
-          currentPageUrl = url;
-          
-          // Cancel any pending timer to prevent double execution
+          // Cancel any pending operations
           if (pendingTimer) {
             cancel(pendingTimer);
             pendingTimer = null;
           }
           
-          // Check if URL contains data explorer
-          if (url.includes("/admin/plugins/explorer")) {
-            console.log(`${PLUGIN_ID}: Processing data explorer page`);
-            
-            // Process the data explorer page
-            processDataExplorerPage();
+          // Check if we're on a data explorer page
+          if (!window.location.href.includes("/admin/plugins/explorer")) {
+            isCurrentlyProcessing = false;
+            return;
           }
-        } catch (error) {
-          console.error(`${PLUGIN_ID}: Error in checkForDataExplorer:`, error.message);
-        }
-      }
-      
-      function processDataExplorerPage() {
-        try {
+          
           // Get settings
           const targetQueryId = settings.target_query_id;
           const paramToHide = settings.parameter_to_hide;
           
           if (!targetQueryId || !paramToHide) {
+            isCurrentlyProcessing = false;
             return;
           }
           
@@ -65,36 +51,44 @@ export default {
           const urlMatch = window.location.href.match(/\/queries\/(\d+)/);
           const currentQueryId = urlMatch ? parseInt(urlMatch[1], 10) : null;
           
-          if (!currentQueryId) {
-            return;
-          }
-          
-          // Check if this is the target query
-          if (currentQueryId !== parseInt(targetQueryId, 10)) {
+          if (!currentQueryId || currentQueryId !== parseInt(targetQueryId, 10)) {
+            isCurrentlyProcessing = false;
             return;
           }
           
           // Create a unique key for this query + parameter combination
           const processKey = `${currentQueryId}-${paramToHide}`;
           
-          // If we've already processed and hidden this parameter, don't try again
+          // If we've already processed this query, don't do it again
           if (processedQueries.has(processKey)) {
+            isCurrentlyProcessing = false;
             return;
           }
           
-          console.log(`${PLUGIN_ID}: Setting up processing for query ${currentQueryId}, parameter ${paramToHide}`);
+          // Only log once
+          if (!initialCheckComplete) {
+            console.log(`${PLUGIN_ID}: Processing query ${currentQueryId}, parameter ${paramToHide}`);
+          }
           
-          // Set a timeout to allow the page to fully render
+          // Schedule the actual processing
           pendingTimer = later(() => {
-            const result = hideParameterField(paramToHide);
-            
-            if (result) {
-              console.log(`${PLUGIN_ID}: Successfully hidden parameter ${paramToHide} for query ${currentQueryId}`);
-              processedQueries.add(processKey);
+            try {
+              const result = hideParameterField(paramToHide);
+              
+              if (result) {
+                console.log(`${PLUGIN_ID}: Successfully hidden parameter ${paramToHide}`);
+                processedQueries.add(processKey);
+              }
+            } finally {
+              // Always release the processing lock
+              isCurrentlyProcessing = false;
+              initialCheckComplete = true;
             }
           }, 500);
+          
         } catch (error) {
-          console.error(`${PLUGIN_ID}: Error in processDataExplorerPage:`, error.message);
+          console.error(`${PLUGIN_ID}: Error in handlePage:`, error.message);
+          isCurrentlyProcessing = false;
         }
       }
       
@@ -194,23 +188,13 @@ export default {
         }
       }
       
-      // Set up page change handler with error handling
+      // Set up page change handler
       api.onPageChange(() => {
-        try {
-          checkForDataExplorer();
-        } catch (error) {
-          console.error(`${PLUGIN_ID}: Error in onPageChange handler:`, error.message);
-        }
+        handlePage();
       });
       
-      // Initial check - delay slightly to ensure DOM is ready
-      later(() => {
-        try {
-          checkForDataExplorer();
-        } catch (error) {
-          console.error(`${PLUGIN_ID}: Error in initial check:`, error.message);
-        }
-      }, 50);
+      // Initial check - with a small delay to ensure everything is loaded
+      later(handlePage, 100);
     });
   }
 }; 
