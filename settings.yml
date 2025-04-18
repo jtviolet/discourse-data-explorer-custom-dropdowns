@@ -1,14 +1,3 @@
-dropdown_configurations:
-  type: list
-  default: ""
-  description: |
-    Configure custom dropdowns for Data Explorer queries. Each line represents one configuration.
-    Format: queryId|paramName|label1:value1,label2:value2,...
-    
-    Example:
-    12|parent_category_name|Access Analyzer:access-analyzer,Account:account,Billing:billing
-  list_type: compact
-
 target_query_id:
   type: integer
   default: 0
@@ -17,4 +6,4 @@ target_query_id:
 parameter_to_hide:
   type: string
   default: ""
-  description: "The name of the parameter field you want to hide (e.g. parent_category_name)"
+  description: "The name of the parameter field you want to hide (e.g. username_search)"
