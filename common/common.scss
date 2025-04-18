@@ -16,10 +16,12 @@
 }
 
 .custom-dropdown-container {
-  margin: 0.5em 0;
-  padding: 0.5em 1em;
+  margin: 1em 0;
+  padding: 0.75em;
   background-color: var(--secondary);
   border-radius: 4px;
+  width: 100%;
+  max-width: 400px;
 }
 
 .custom-dropdown-label {
@@ -27,15 +29,48 @@
   margin-bottom: 0.5em;
   font-weight: bold;
   color: var(--primary);
+  font-size: 1em;
+}
+
+.select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.select-wrapper::after {
+  content: "▼";
+  font-size: 0.7em;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--primary-medium);
 }
 
 .custom-param-dropdown {
   width: 100%;
-  padding: 0.5em;
-  border: 1px solid var(--primary-low);
+  min-width: 200px;
+  padding: 8px 30px 8px 10px;
+  border: 1px solid var(--primary-low-mid);
   border-radius: 3px;
   background-color: var(--secondary);
   color: var(--primary);
+  font-size: 1em;
+  cursor: pointer;
+  appearance: none; /* Removes default browser styling */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.custom-param-dropdown:hover {
+  border-color: var(--primary-low);
+}
+
+.custom-param-dropdown:focus {
+  outline: none;
+  border-color: var(--tertiary);
+  box-shadow: 0 0 0 2px rgba(var(--tertiary-rgb), 0.3);
 }
 
 // Add a debug class that makes hidden elements obvious when testing

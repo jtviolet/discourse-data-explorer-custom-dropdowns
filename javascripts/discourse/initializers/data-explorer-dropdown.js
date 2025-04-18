@@ -137,9 +137,11 @@ export default {
             return false;
           }
           
-          // Get label text
-          const labelElement = paramContainer.querySelector('label');
-          const labelText = labelElement ? labelElement.textContent : paramToHide;
+          // Get a user-friendly label text (capitalize and replace underscores with spaces)
+          const friendlyLabel = paramToHide
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
           
           // Hide the original parameter container
           hideElement(paramContainer);
@@ -151,8 +153,12 @@ export default {
           // Create label
           const newLabel = document.createElement('label');
           newLabel.className = 'custom-dropdown-label';
-          newLabel.textContent = labelText;
+          newLabel.textContent = friendlyLabel;
           dropdownContainer.appendChild(newLabel);
+          
+          // Create select wrapper for better styling
+          const selectWrapper = document.createElement('div');
+          selectWrapper.className = 'select-wrapper';
           
           // Create select element
           const selectElement = document.createElement('select');
@@ -161,7 +167,7 @@ export default {
           // Add empty option first
           const emptyOption = document.createElement('option');
           emptyOption.value = '';
-          emptyOption.textContent = 'Select an option...';
+          emptyOption.textContent = `Select ${friendlyLabel}...`;
           selectElement.appendChild(emptyOption);
           
           // Add options from settings
@@ -197,8 +203,9 @@ export default {
             inputField.dispatchEvent(inputEvent);
           });
           
-          // Add select to container
-          dropdownContainer.appendChild(selectElement);
+          // Add select to wrapper, then wrapper to container
+          selectWrapper.appendChild(selectElement);
+          dropdownContainer.appendChild(selectWrapper);
           
           // Insert dropdown after the hidden parameter
           paramContainer.parentNode.insertBefore(dropdownContainer, paramContainer.nextSibling);
