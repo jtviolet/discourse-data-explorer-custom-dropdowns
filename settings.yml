@@ -1,49 +1,3 @@
-query_dropdown_mappings:
-  type: json
-  default: '{}'
-  description: |
-    Configure custom dropdowns for Data Explorer queries.
-    Format:
-    {
-      "queryId": {
-        "paramToHide": "parameter_name",
-        "options": [
-          {"label": "Option 1", "value": "option1"},
-          {"label": "Option 2", "value": "option2"}
-        ]
-      }
-    }
-  list_type: compact
-
-target_queries:
-  type: list
-  default: ""
-  description: "List of query IDs to customize (e.g., 12, 15, 20)"
-  list_type: compact
-
-param_mappings:
-  type: list
-  default: ""
-  description: |
-    For each query in the list above, specify the parameter name to replace.
-    Must be in the same order as the query IDs.
-  list_type: compact
-
-dropdown_options:
-  type: list
-  default: ""
-  description: |
-    For each parameter mapping above, specify the dropdown options.
-    Format: label1:value1,label2:value2,...
-    Must be in the same order as the query IDs and parameter names.
-  list_type: compact
-
-enable_for_queries:
-  type: list
-  default: ""
-  description: "List of query IDs to enable custom dropdowns for (e.g., 12,15,20)"
-  list_type: compact
-
 dropdown_configurations:
   type: list
   default: ""
@@ -53,4 +7,4 @@ dropdown_configurations:
     
     Example:
     12|parent_category_name|Access Analyzer:access-analyzer,Account:account,Billing:billing
-  list_type: compact 
+  list_type: compact
