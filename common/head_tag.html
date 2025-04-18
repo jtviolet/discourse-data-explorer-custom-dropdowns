@@ -23,19 +23,35 @@
         
         // Check if this is the target query
         if (parseInt(queryId, 10) !== parseInt(targetQueryId, 10)) {
+          console.log(`${PLUGIN_ID}: Current query ${queryId} does not match target query ${targetQueryId}`);
           return;
         }
         
         // Check if param to hide is set
         if (!paramToHide) {
+          console.log(`${PLUGIN_ID}: No parameter to hide specified`);
           return;
         }
         
         console.log(`${PLUGIN_ID}: Attempting to hide parameter ${paramToHide} for query ${targetQueryId}`);
         
-        // Find and hide the parameter input
-        const paramContainer = $(`#query-params-container .param-input[data-name="${paramToHide}"]`);
-        if (!paramContainer.length) {
+        // Try multiple selector strategies to find the parameter
+        let paramContainer = null;
+        
+        // Strategy 1: Try finding by control ID
+        paramContainer = $(`#control-${paramToHide}`).closest('.param');
+        
+        // Strategy 2: If not found, try finding by data-name attribute
+        if (!paramContainer || !paramContainer.length) {
+          paramContainer = $(`[data-name="${paramToHide}"]`).closest('.param');
+        }
+        
+        // Strategy 3: Try finding by label text
+        if (!paramContainer || !paramContainer.length) {
+          paramContainer = $(`label:contains("${paramToHide}")`).closest('.param');
+        }
+        
+        if (!paramContainer || !paramContainer.length) {
           console.error(`${PLUGIN_ID}: Could not find parameter input with name ${paramToHide}`);
           return;
         }
