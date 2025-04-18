@@ -17,20 +17,60 @@
         const queryId = this.get('query.id');
         if (!queryId) return;
         
-        try {
-          // Parse the JSON configuration
-          const configs = JSON.parse(settings.dropdown_configurations || '[]');
-          
-          // Find configuration for current query
-          const queryConfig = configs.find(config => parseInt(config.queryId, 10) === parseInt(queryId, 10));
-          if (!queryConfig) return;
-          
+        // Parse configurations from settings
+        const configs = this._parseConfigurations(settings.dropdown_configurations);
+        
+        // Find configuration for current query
+        const queryConfig = configs.find(config => 
+          parseInt(config.queryId, 10) === parseInt(queryId, 10)
+        );
+        
+        if (queryConfig) {
           // Setup the dropdown
           this._setupCustomDropdown(queryConfig);
-        } catch (e) {
-          console.error(`${PLUGIN_ID}: Error parsing configuration`, e);
         }
       });
+    },
+    
+    _parseConfigurations(configList) {
+      const configs = [];
+      
+      if (!configList || !Array.isArray(configList)) {
+        return configs;
+      }
+      
+      configList.forEach(configLine => {
+        if (!configLine || typeof configLine !== 'string') return;
+        
+        // Format: queryId|paramName|label1:value1,label2:value2,...
+        const parts = configLine.split('|');
+        if (parts.length < 3) return;
+        
+        const queryId = parseInt(parts[0].trim(), 10);
+        const paramName = parts[1].trim();
+        const optionsStr = parts[2].trim();
+        
+        const options = [];
+        optionsStr.split(',').forEach(pair => {
+          const [label, value] = pair.split(':');
+          if (label && value) {
+            options.push({
+              label: label.trim(),
+              value: value.trim()
+            });
+          }
+        });
+        
+        if (options.length > 0) {
+          configs.push({
+            queryId,
+            paramName,
+            options
+          });
+        }
+      });
+      
+      return configs;
     },
     
     _setupCustomDropdown(config) {

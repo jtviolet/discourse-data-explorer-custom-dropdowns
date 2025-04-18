@@ -15,24 +15,27 @@ query_dropdown_mappings:
     }
   list_type: compact
 
-target_query_id:
-  type: enum
+target_queries:
+  type: list
   default: ""
-  description: "The Data Explorer query ID to modify"
-  choices:
-    - 12
-    - 15
-    - 20
+  description: "List of query IDs to customize (e.g., 12, 15, 20)"
+  list_type: compact
 
-parameter_to_hide:
-  type: string
+param_mappings:
+  type: list
   default: ""
-  description: "The parameter name to replace with a dropdown"
+  description: |
+    For each query in the list above, specify the parameter name to replace.
+    Must be in the same order as the query IDs.
+  list_type: compact
 
 dropdown_options:
   type: list
-  default: "Option 1:value1|Option 2:value2"
-  description: "Format: Label:value|Label2:value2"
+  default: ""
+  description: |
+    For each parameter mapping above, specify the dropdown options.
+    Format: label1:value1,label2:value2,...
+    Must be in the same order as the query IDs and parameter names.
   list_type: compact
 
 enable_for_queries:
@@ -42,20 +45,12 @@ enable_for_queries:
   list_type: compact
 
 dropdown_configurations:
-  type: json
-  default: '[]'
+  type: list
+  default: ""
   description: |
-    Configure custom dropdowns for Data Explorer queries. Each configuration should specify the query ID, parameter name to replace, and dropdown options.
+    Configure custom dropdowns for Data Explorer queries. Each line represents one configuration.
+    Format: queryId|paramName|label1:value1,label2:value2,...
     
     Example:
-    [
-      {
-        "queryId": 12,
-        "paramName": "parent_category_name",
-        "options": [
-          {"label": "Access Analyzer", "value": "access-analyzer"},
-          {"label": "Account", "value": "account"},
-          {"label": "Billing", "value": "billing"}
-        ]
-      }
-    ] 
+    12|parent_category_name|Access Analyzer:access-analyzer,Account:account,Billing:billing
+  list_type: compact 
