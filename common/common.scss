@@ -4,6 +4,9 @@
   opacity: 0 !important;
   height: 0 !important;
   overflow: hidden !important;
+  position: absolute !important;
+  pointer-events: none !important;
+  clip: rect(0, 0, 0, 0) !important;
 }
 
 // Add a debug class that makes hidden elements obvious when testing
