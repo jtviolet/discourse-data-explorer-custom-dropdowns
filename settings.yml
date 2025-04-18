@@ -1,0 +1,10 @@
+query_dropdown_mappings:
+  type: list
+  default: ""
+  description: |
+    Mappings for custom dropdowns. Format per line:
+    queryId|paramToHide|option1:value1,option2:value2,...
+    
+    Example:
+    12|parent_category_name|Access Analyzer:access-analyzer,Account:account,Billing:billing
+  list_type: compact 

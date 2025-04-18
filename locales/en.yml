@@ -1,0 +1,3 @@
+en:
+  theme_metadata:
+    description: "This theme component creates custom dropdowns for the Data Explorer by hiding default string fields and replacing them with custom dropdowns."

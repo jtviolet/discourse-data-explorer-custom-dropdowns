@@ -1,0 +1,160 @@
+<script type="text/discourse-plugin" version="0.8">
+  const PLUGIN_ID = "discourse-custom-data-explorer-dropdown";
+
+  // Register the component for query pages
+  api.modifyClass("component:data-explorer-query", {
+    pluginId: PLUGIN_ID,
+    
+    didInsertElement() {
+      this._super(...arguments);
+      this._initializeCustomDropdowns();
+    },
+
+    _initializeCustomDropdowns() {
+      // Wait for DOM to be fully loaded with query parameters
+      Ember.run.scheduleOnce('afterRender', this, () => {
+        const settings = settings;
+        
+        if (!settings.query_dropdown_mappings) {
+          return;
+        }
+        
+        // Parse mappings from settings
+        const mappings = this._parseMappingSettings(settings.query_dropdown_mappings);
+        
+        // Get current query ID
+        const queryId = this.get('query.id');
+        
+        // Find mapping for current query
+        const mapping = mappings.find(m => m.queryId === queryId);
+        if (!mapping) {
+          return;
+        }
+        
+        // Create and inject custom dropdown
+        this._setupCustomDropdown(mapping);
+      });
+    },
+    
+    _parseMappingSettings(mappingsString) {
+      const mappings = [];
+      
+      if (!mappingsString) {
+        return mappings;
+      }
+      
+      // Split by new line for each query configuration
+      const configLines = mappingsString.split("\n").filter(line => line.trim());
+      
+      configLines.forEach(line => {
+        // Format: queryId|paramToHide|option1:value1,option2:value2,...
+        const parts = line.split("|");
+        if (parts.length < 3) {
+          console.error(`${PLUGIN_ID}: Invalid mapping format`, line);
+          return;
+        }
+        
+        const queryId = parseInt(parts[0].trim(), 10);
+        const paramToHide = parts[1].trim();
+        const optionsStr = parts[2].trim();
+        
+        const options = [];
+        optionsStr.split(",").forEach(pair => {
+          const [label, value] = pair.split(":");
+          if (label && value) {
+            options.push({
+              label: label.trim(),
+              value: value.trim()
+            });
+          }
+        });
+        
+        if (options.length > 0) {
+          mappings.push({
+            queryId,
+            paramToHide,
+            options
+          });
+        }
+      });
+      
+      return mappings;
+    },
+    
+    _setupCustomDropdown(mapping) {
+      // Find the param input to replace
+      const paramContainer = $(`#query-params-container .param-input[data-name="${mapping.paramToHide}"]`);
+      if (!paramContainer.length) {
+        console.error(`${PLUGIN_ID}: Could not find parameter input with name ${mapping.paramToHide}`);
+        return;
+      }
+      
+      const inputField = paramContainer.find('input');
+      if (!inputField.length) {
+        console.error(`${PLUGIN_ID}: Could not find input field for parameter ${mapping.paramToHide}`);
+        return;
+      }
+      
+      // Hide the original input container
+      paramContainer.addClass('hidden-param-input');
+      
+      // Create custom dropdown
+      const dropdownContainer = $('<div class="custom-dropdown-container"></div>');
+      const selectElement = $('<select class="custom-param-dropdown"></select>');
+      
+      // Add an empty option first
+      selectElement.append('<option value="">Select an option...</option>');
+      
+      // Add options from mapping
+      mapping.options.forEach(option => {
+        selectElement.append(`<option value="${option.value}">${option.label}</option>`);
+      });
+      
+      // Set current value if it matches any option
+      const currentValue = inputField.val();
+      if (currentValue) {
+        selectElement.val(currentValue);
+      }
+      
+      // Handle change event
+      selectElement.on('change', function() {
+        const selectedValue = $(this).val();
+        inputField.val(selectedValue);
+        
+        // Trigger change event on hidden input so Discourse recognizes the change
+        inputField.trigger('change');
+      });
+      
+      // Add label and dropdown to container
+      const label = paramContainer.find('label').text();
+      dropdownContainer.append(`<label class="custom-dropdown-label">${label}</label>`);
+      dropdownContainer.append(selectElement);
+      
+      // Insert dropdown after the hidden input
+      paramContainer.after(dropdownContainer);
+    }
+  });
+</script>
+
+<style>
+  .hidden-param-input {
+    display: none !important;
+  }
+  
+  .custom-dropdown-container {
+    margin: 8px 0;
+  }
+  
+  .custom-dropdown-label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: bold;
+  }
+  
+  .custom-param-dropdown {
+    width: 100%;
+    padding: 6px;
+    border-radius: 3px;
+    border: 1px solid var(--primary-low);
+  }
+</style> 
